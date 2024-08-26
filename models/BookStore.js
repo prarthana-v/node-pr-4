@@ -25,6 +25,6 @@ const productSchema = new mongoose.Schema({
 });
 
 // Create a model for the new collection
-const Product = mongoose.model("Product", productSchema);
+const BookStore = mongoose.model("BookStore", productSchema);
 
-module.exports = Product;
+module.exports = BookStore;
