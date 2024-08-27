@@ -7,6 +7,8 @@ const fs = require("fs");
 const port = 3000;
 let BookStore = require("./models/BookStore");
 const connectDB = require("./Config/db");
+const { log } = require("console");
+const { name } = require("ejs");
 connectDB();
 
 const storage = multer.diskStorage({
@@ -93,6 +95,47 @@ app.get("/deleteBook", (req, res) => {
     .catch((err) => {
       console.log(err);
       return false;
+    });
+});
+
+// edit book record
+app.get("/edit", (req, res) => {
+  console.log("hello");
+  let eid = req.query.eid;
+  console.log(eid);
+
+  BookStore.findById(eid)
+    .then((single) => {
+      // console.log(single);
+      res.render("edit", {
+        single,
+      });
+    })
+    .catch((err) => {
+      console.log(err);
+      return false;
+    });
+});
+
+app.post("/updateBook", upload, (req, res) => {
+  console.log(req.body);
+  const { id, name, author, price, pages } = req.body;
+  BookStore.findByIdAndUpdate(id, {
+    name: name,
+    author: author,
+    pages: pages,
+    price: price,
+  })
+    .then((updatedBook) => {
+      if (!updatedBook) {
+        return res.status(404).send("Book not found");
+      }
+      // console.log(updatedB ook);
+      return res.redirect("/");
+    })
+    .catch((err) => {
+      console.log(err);
+      return res.status(500).send("Error updating book");
     });
 });
 
