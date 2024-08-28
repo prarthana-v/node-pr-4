@@ -19,18 +19,14 @@
           class="col-6 border p-3 mt-5 shadow"
           action="/updateBook"
           method="post"
+          enctype="multipart/form-data"
         >
           <h3 class="text-center">Book Details</h3>
           <div class="form-text text-center">update a book to library.</div>
           <hr />
           <div class="mb-3">
             <label class="form-label">Id</label>
-            <input
-              type="text"
-              class="form-control"
-              name="id"
-              value="<%= single.id %>"
-            />
+            <input value="<%= single.id %>" name="editid" />
           </div>
           <div class="mb-3">
             <label class="form-label">Name</label>
@@ -68,6 +64,7 @@
               >Chose a new file if you want to update image</span
             >
             <input type="file" class="form-control" name="image" />
+            <img src="<%=  single.image %>" width="100" alt="" />
           </div>
           <div class="mb-3">
             <label class="form-label">Author</label>

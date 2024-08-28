@@ -1,34 +1,30 @@
 let express = require("express");
 const app = express();
-const multer = require("multer");
+const port = 3000;
 const path = require("path");
+
 const fs = require("fs");
 
-const port = 3000;
 let BookStore = require("./models/BookStore");
 const connectDB = require("./Config/db");
-const { log } = require("console");
-const { name } = require("ejs");
 connectDB();
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/"); // Specify the destination folder
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+const multer = require("multer");
+const { unlinkSync } = require("fs");
+
+const st = multer.diskStorage({
+  destination: (req, res, cb) => {
+    cb(null, "uploads");
   },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(
-      null,
-      file.fieldname +
-        "-" +
-        uniqueSuffix +
-        "." +
-        file.originalname.split(".").pop()
-    );
+  filename: (req, file, cb) => {
+    const uniqname = `${Date.now()}-${Math.random() * 100000}`;
+    cb(null, `${file.fieldname}-${uniqname}`);
   },
 });
-app.use("/uploads", express.static("uploads"));
-const upload = multer({ storage: storage }).single("image");
+
+const uploadFile = multer({ storage: st }).single("image");
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded());
@@ -53,7 +49,7 @@ app.get("/", (req, res) => {
 });
 
 // insert function
-app.post("/insertbook", upload, (req, res) => {
+app.post("/insertbook", uploadFile, (req, res) => {
   const { name, price, pages, author } = req.body;
   const image = req.file.path;
 
@@ -100,7 +96,7 @@ app.get("/deleteBook", (req, res) => {
 
 // edit book record
 app.get("/edit", (req, res) => {
-  console.log("hello");
+  // console.log("hello");
   let eid = req.query.eid;
   console.log(eid);
 
@@ -117,27 +113,74 @@ app.get("/edit", (req, res) => {
     });
 });
 
-app.post("/updateBook", upload, (req, res) => {
-  console.log(req.body);
-  const { id, name, author, price, pages } = req.body;
-  BookStore.findByIdAndUpdate(id, {
-    name: name,
-    author: author,
-    pages: pages,
-    price: price,
-  })
-    .then((updatedBook) => {
-      if (!updatedBook) {
-        return res.status(404).send("Book not found");
+// update book details
+app.post(
+  "/updateBook",
+  (req, res, next) => {
+    uploadFile(req, res, (err) => {
+      if (err) {
+        console.log("Multer error:", err);
+        return res.status(400).send("File upload error");
       }
-      // console.log(updatedB ook);
-      return res.redirect("/");
-    })
-    .catch((err) => {
-      console.log(err);
-      return res.status(500).send("Error updating book");
+      next();
     });
-});
+  },
+  (req, res) => {
+    console.log(req.body);
+    console.log(req.file);
+
+    const { editid, name, author, price, pages } = req.body;
+    if (req.file) {
+      console.log(req.file);
+      BookStore.findById(editid)
+        .then((single) => {
+          fs.unlinkSync(single.image);
+        })
+        .catch((err) => {
+          console.log(err);
+          return false;
+        });
+      BookStore.findByIdAndUpdate(editid, {
+        name: name,
+        author: author,
+        price: price,
+        pages: pages,
+        image: req.file.path,
+      })
+        .then((response) => {
+          console.log("Record update");
+          return res.redirect("/");
+        })
+        .catch((err) => {
+          console.log(err);
+          return false;
+        });
+    } else {
+      BookStore.findById(editid)
+        .then((single) => {
+          BookStore.findByIdAndUpdate(editid, {
+            name: name,
+            author: author,
+            price: price,
+            pages: pages,
+            image: single.image,
+          })
+            .then((response) => {
+              console.log("Record update");
+              return res.redirect("/");
+            })
+            .catch((err) => {
+              console.log(err);
+              return false;
+            });
+        })
+        .catch((err) => {
+          console.log(err);
+          return false;
+        });
+    }
+  }
+);
 
 app.listen(port, (err) => {
   if (err) {
