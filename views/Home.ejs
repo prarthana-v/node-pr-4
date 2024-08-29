@@ -11,12 +11,20 @@
       crossorigin="anonymous"
     />
   </head>
-
+  <style>
+    form {
+      background-color: rgb(245, 242, 242);
+      border-radius: 10px;
+    }
+    body {
+      background-color: rgb(245, 235, 224);
+    }
+  </style>
   <body>
     <div class="container">
       <div class="col-12 d-flex justify-content-center">
         <form
-          class="col-6 border p-3 mt-5 shadow"
+          class="col-6 p-4 mt-5 shadow"
           action="/insertbook"
           method="post"
           enctype="multipart/form-data"

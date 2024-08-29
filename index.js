@@ -1,18 +1,29 @@
 let express = require("express");
+
+const port = 8000;
+
 const app = express();
-const port = 3000;
-const path = require("path");
 
-const fs = require("fs");
-
-let BookStore = require("./models/BookStore");
+//database connection
 const connectDB = require("./Config/db");
 connectDB();
 
+// model connection
+let BookStore = require("./models/BookStore");
+
+const fs = require("fs");
+
+app.set("view engine", "ejs");
+
+app.use(express.urlencoded());
+
+const path = require("path");
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// file upload
+
 const multer = require("multer");
-const { unlinkSync } = require("fs");
 
 const st = multer.diskStorage({
   destination: (req, res, cb) => {
@@ -24,18 +35,11 @@ const st = multer.diskStorage({
   },
 });
 
-const uploadFile = multer({ storage: st }).single("image");
-
-app.set("view engine", "ejs");
-app.use(express.urlencoded());
-
-app.get("/add", (req, res) => {
-  return res.render("Home");
-});
+const upload = multer({ storage: st }).single("image");
 
 // view function
 app.get("/", (req, res) => {
-  BookStore.find()
+  BookStore.find({})
     .then((record) => {
       // console.log(record);
       return res.render("view", {
@@ -48,21 +52,25 @@ app.get("/", (req, res) => {
     });
 });
 
-// insert function
-app.post("/insertbook", uploadFile, (req, res) => {
-  const { name, price, pages, author } = req.body;
-  const image = req.file.path;
+app.get("/add", (req, res) => {
+  return res.render("Home");
+});
 
+// insert function
+app.post("/insertbook", upload, (req, res) => {
+  console.log(req.body);
+
+  const { name, price, pages, author } = req.body;
   BookStore.create({
     name: name,
     price: price,
     pages: pages,
     author: author,
-    image: image,
+    image: req.file.path,
   })
-    .then((bookDetails) => {
+    .then(() => {
       console.log("Book Details Uploaded...! ");
-      return res.redirect("/");
+      res.redirect("/");
     })
     .catch((err) => {
       console.log(err);
@@ -72,9 +80,9 @@ app.post("/insertbook", uploadFile, (req, res) => {
 
 // delete book record
 app.get("/deleteBook", (req, res) => {
-  let did = req.query.did;
+  let id = req.query.did;
 
-  BookStore.findById(did)
+  BookStore.findById(id)
     .then((single) => {
       fs.unlinkSync(single.image);
     })
@@ -83,8 +91,8 @@ app.get("/deleteBook", (req, res) => {
       return false;
     });
 
-  BookStore.findByIdAndDelete(did)
-    .then((data) => {
+  BookStore.findByIdAndDelete(id)
+    .then((response) => {
       console.log("Book Details Deleted..!");
       return res.redirect("/");
     })
@@ -98,12 +106,13 @@ app.get("/deleteBook", (req, res) => {
 app.get("/edit", (req, res) => {
   // console.log("hello");
   let eid = req.query.eid;
-  console.log(eid);
+  console.log("edit ma thi ave che", eid);
 
   BookStore.findById(eid)
     .then((single) => {
-      // console.log(single);
-      res.render("edit", {
+      console.log("edit route nu", single);
+
+      return res.render("edit", {
         single,
       });
     })
@@ -113,74 +122,65 @@ app.get("/edit", (req, res) => {
     });
 });
 
-// update book details
-app.post(
-  "/updateBook",
-  (req, res, next) => {
-    uploadFile(req, res, (err) => {
-      if (err) {
-        console.log("Multer error:", err);
-        return res.status(400).send("File upload error");
-      }
-      next();
-    });
-  },
-  (req, res) => {
-    console.log(req.body);
-    console.log(req.file);
+//update book
+app.post("/updateBook", upload, (req, res) => {
+  console.log(req.body);
+  const { editid, name, author, price, pages } = req.body;
 
-    const { editid, name, author, price, pages } = req.body;
-    if (req.file) {
-      console.log(req.file);
-      BookStore.findById(editid)
-        .then((single) => {
-          fs.unlinkSync(single.image);
-        })
-        .catch((err) => {
-          console.log(err);
-          return false;
-        });
-      BookStore.findByIdAndUpdate(editid, {
-        name: name,
-        author: author,
-        price: price,
-        pages: pages,
-        image: req.file.path,
+  if (req.file) {
+    console.log("131", req.file);
+
+    BookStore.findById(editid)
+      .then((single) => {
+        console.log("134", single);
+        fs.unlinkSync(single.image);
       })
-        .then((response) => {
-          console.log("Record update");
-          return res.redirect("/");
+      .catch((err) => {
+        console.log("139", err);
+      });
+
+    BookStore.findByIdAndUpdate(editid, {
+      name: name,
+      price: price,
+      pages: pages,
+      author: author,
+      image: req.file.path,
+    })
+      .then((response) => {
+        console.log("Record updated");
+        return res.redirect("/");
+      })
+      .catch((err) => {
+        console.log(err);
+        return false;
+      });
+  } else {
+    BookStore.findById(editid)
+      .then((single) => {
+        console.log("161", single);
+
+        BookStore.findByIdAndUpdate(editid, {
+          name: name,
+          price: price,
+          pages: pages,
+          author: author,
+          image: single.image,
         })
-        .catch((err) => {
-          console.log(err);
-          return false;
-        });
-    } else {
-      BookStore.findById(editid)
-        .then((single) => {
-          BookStore.findByIdAndUpdate(editid, {
-            name: name,
-            author: author,
-            price: price,
-            pages: pages,
-            image: single.image,
+          .then((response) => {
+            console.log("Record updated");
+            return res.redirect("/");
           })
-            .then((response) => {
-              console.log("Record update");
-              return res.redirect("/");
-            })
-            .catch((err) => {
-              console.log(err);
-              return false;
-            });
-        })
-        .catch((err) => {
-          console.log(err);
-          return false;
-        });
-    }
+          .catch((err) => {
+            console.log(err);
+            return false;
+          });
+      })
+      .catch((err) => {
+        console.log(err);
+        return false;
+      });
   }
-);
+});
 
 app.listen(port, (err) => {
   if (err) {

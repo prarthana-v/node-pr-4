@@ -26,7 +26,11 @@
           <hr />
           <div class="mb-3">
             <label class="form-label">Id</label>
-            <input value="<%= single.id %>" name="editid" />
+            <input
+              value="<%= single.id %>"
+              class="form-control"
+              name="editid"
+            />
           </div>
           <div class="mb-3">
             <label class="form-label">Name</label>
@@ -63,7 +67,12 @@
             <span class="form-text"
               >Chose a new file if you want to update image</span
             >
-            <input type="file" class="form-control" name="image" />
+            <input
+              type="file"
+              class="form-control"
+              name="image"
+              value="<%= single.image %>"
+            />
             <img src="<%=  single.image %>" width="100" alt="" />
           </div>
           <div class="mb-3">
@@ -76,11 +85,11 @@
               value="<%= single.author %>"
             />
           </div>
-          <button type="submit" class="btn btn-primary">
-            <a href="/" class="text-white" style="text-decoration: none"
-              >Submit</a
-            >
+
+          <button class="btn btn-primary" style="text-decoration: none">
+            Edit
           </button>
+
           <a href="/" class="btn btn-primary">View book Library</a>
         </form>
       </div>
